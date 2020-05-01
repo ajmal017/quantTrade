@@ -14,12 +14,13 @@ def getTickersData(tickers, startDate, endDate, interval):
 
 def getExecutionDate():
     todayDate = datetime.datetime.today()
-    previousDate = todayDate - datetime.timedelta(days=1)
+    #previousDate = todayDate - datetime.timedelta(days=1)
 
-    while ((getHoliday(previousDate) == -1) and calendar.weekday(previousDate.year, previousDate.month, previousDate.day) in (5,6)):
-        previousDate = todayDate - datetime.timedelta(days=1)
+    #while ((getHoliday(previousDate) == -1) and calendar.weekday(previousDate.year, previousDate.month, previousDate.day) in (5,6)):
+    #    previousDate = todayDate - datetime.timedelta(days=1)
 
-    return previousDate
+    #return previousDate
+    return todayDate
 
 def getHoliday(todayDate):
     brHolidays =  Brazil()
@@ -40,20 +41,17 @@ def volumeDistortions(data):
             todayVar = (((data[ticker]['Adj Close'][-1:][0]) - (data[ticker]['Open'][-1:][0])) / (data[ticker]['Adj Close'][-1:][0])) * 100
             todayVolume = data[ticker][i][-1:]
             last5Volume = data[ticker][i][-5:-1]
-            last20Volume = data[ticker][i][-20:-1]
-            last40Volume = data[ticker][i][-40:-1]
-            last60Volume = data[ticker][i][-60:-1]
+            last21Volume = data[ticker][i][-21:-1]
+            last50Volume = data[ticker][i][-50:-1]
             
             if ((todayVolume[0] / last5Volume.mean()) > 1.4):
-                print(ticker + ': ' + 'com volume 40% acima da média de 5 dias, fechando a ' + '{:.2f} %'.format(todayVar))
-                print(data[ticker]['Open'][-1:][0])
-                print(data[ticker]['Adj Close'][-1:][0])
-            if ((todayVolume[0] / last20Volume.mean()) > 1.4):
-                print(ticker + ': ' + 'com volume 40% acima da média de 20 dias, fechando a ' + '{:.2f} %'.format(todayVar))
-            if ((todayVolume[0] / last40Volume.mean()) > 1.4):
-                print(ticker + ': ' + 'com volume 40% acima da média de 40 dias, fechando a ' + '{:.2f} %'.format(todayVar))
-            if ((todayVolume[0] / last60Volume.mean()) > 1.4):
-                print(ticker + ': ' + 'com volume 40% acima da média de 60 dias, fechando a ' + '{:.2f} %'.format(todayVar))
+                print(ticker + ': ' + 'com volume 40% acima da média de 5 dias, fechando a ' + '{:.2f}% de oscilação no intra'.format(todayVar))
+                #print(data[ticker]['Open'][-1:][0])
+                #print(data[ticker]['Adj Close'][-1:][0])
+            if ((todayVolume[0] / last21Volume.mean()) > 1.4):
+                print(ticker + ': ' + 'com volume 40% acima da média de 21 dias, fechando a ' + '{:.2f}% de oscilação no intra'.format(todayVar))
+            if ((todayVolume[0] / last50Volume.mean()) > 1.4):
+                print(ticker + ': ' + 'com volume 40% acima da média de 50 dias, fechando a ' + '{:.2f}% de oscilação no intra'.format(todayVar))
             
 if __name__ == '__main__':
     #Verificando se é dia útil para a execução
@@ -69,8 +67,8 @@ if __name__ == '__main__':
 
         #Alocando Tickers que serão utilizados
         tickers = 'PETR4.SA VALE3.SA ITUB4.SA IRBR3.SA JSLG3.SA ^BVSP MOVI3.SA BBAS3.SA BBDC4.SA CMIG4.SA FLRY3.SA ITSA4.SA MGLU3.SA VVAR3.SA ABEV3.SA AZUL4.SA B3SA3.SA BPAC11.SA CIEL3.SA ELET3.SA JBSS3.SA MRFG3.SA BOVA11.SA'
-        #tickers = 'IRBR3.SA VALE3.SA'
-        tickersData = getTickersData(tickers=tickers, startDate=startDateFmt, endDate=endDateFmt, interval='1d')
+        #tickers = 'FLRY3.SA VALE3.SA'
+        tickersData = getTickersData(tickers=tickers, startDate=startDateFmt, endDate='2020-04-28', interval='1d')
 
         volumeDistortions(tickersData)
         #writeExcel(filename=excelFilename, dictInsData=dictData, sheet='YahooFX', date=dateToday)

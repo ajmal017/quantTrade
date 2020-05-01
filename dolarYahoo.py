@@ -16,18 +16,15 @@ def writeExcel(filename, dictInsData, sheet, date):
     cellPos = ws.max_row
 
     for i, j in dictInsData:
-        if j =='Close':
+        if j in ('Open', 'Close', 'Low', 'High'):
             for index in dictInsData[i,j].index:
                 if (dictInsData[i,j][index] > 0) and (str(index).find(' 18:00') > 0):
                     cellPos = cellPos + 1
-                    print(i)
-                    print(j)
-                    print(index)
-                    print(dictInsData[i,j][index])
                     ws['A' + str(cellPos)].value = i
                     ws['B' + str(cellPos)].value = index
-                    ws['C' + str(cellPos)].value = dictInsData[i,j][index]
-                    ws['D' + str(cellPos)].value = date
+                    ws['C' + str(cellPos)].value = j
+                    ws['D' + str(cellPos)].value = dictInsData[i,j][index]
+                    ws['E' + str(cellPos)].value = date
 
     wb.save(filename)
 
