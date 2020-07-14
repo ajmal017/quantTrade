@@ -3,9 +3,6 @@ import datetime
 import calendar
 import pandas as pd
 from workalendar.america import Brazil
-import matplotlib.pyplot as plt
-from matplotlib import style
-import matplotlib as mpl
 
 
 def getTickersData(tickers, startDate, endDate, interval):
@@ -33,26 +30,6 @@ def getHoliday(todayDate):
 def getStartDate(executionDate):
     return executionDate - datetime.timedelta(days=90)
 
-def volumeDistortions(data):
-    #loop pelos tickers
-    #print(data)
-    for ticker, i in data:
-        if i == 'Volume':
-            todayVar = (((data[ticker]['Adj Close'][-1:][0]) - (data[ticker]['Open'][-1:][0])) / (data[ticker]['Adj Close'][-1:][0])) * 100
-            todayVolume = data[ticker][i][-1:]
-            last5Volume = data[ticker][i][-5:-1]
-            last21Volume = data[ticker][i][-21:-1]
-            last50Volume = data[ticker][i][-50:-1]
-            
-            if ((todayVolume[0] / last5Volume.mean()) > 1.4):
-                print(ticker + ': ' + 'com volume 40% acima da média de 5 dias, fechando a ' + '{:.2f}% de oscilação no intra'.format(todayVar))
-                #print(data[ticker]['Open'][-1:][0])
-                #print(data[ticker]['Adj Close'][-1:][0])
-            if ((todayVolume[0] / last21Volume.mean()) > 1.4):
-                print(ticker + ': ' + 'com volume 40% acima da média de 21 dias, fechando a ' + '{:.2f}% de oscilação no intra'.format(todayVar))
-            if ((todayVolume[0] / last50Volume.mean()) > 1.4):
-                print(ticker + ': ' + 'com volume 40% acima da média de 50 dias, fechando a ' + '{:.2f}% de oscilação no intra'.format(todayVar))
-            
 if __name__ == '__main__':
     #Verificando se é dia útil para a execução
     executionDate = getExecutionDate()
