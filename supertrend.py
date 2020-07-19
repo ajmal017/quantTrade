@@ -13,7 +13,7 @@ def ST(df,f,n): #df is the dataframe, n is the period, f is the factor; f=3, n=7
     df['L-PC']=abs(df['Low']-df['Close'].shift(1))
     df['TR']=df[['H-L','H-PC','L-PC']].max(axis=1)
     df['ATR']=np.nan
-    df.ix[n-1,'ATR']=df['TR'][:n-1].mean() #.ix is deprecated from pandas verion- 0.19
+    df['ATR'].iloc[n-1]=df['TR'][:n-1].mean()
     for i in range(n,len(df)):
         df['ATR'][i]=(df['ATR'][i-1]*(n-1)+ df['TR'][i])/n
 
@@ -47,5 +47,5 @@ def ST(df,f,n): #df is the dataframe, n is the period, f is the factor; f=3, n=7
             df['SuperTrend'][i]=df['Lower Band'][i]
         elif df['SuperTrend'][i-1]==df['Lower Band'][i-1] and df['Close'][i]<=df['Lower Band'][i]:
             df['SuperTrend'][i]=df['Upper Band'][i]
-return df
+    return df
     
