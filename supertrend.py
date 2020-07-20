@@ -2,8 +2,8 @@
 @author: techietrader
 '''
 import numpy as np
-import pandas as pd  
-
+import pandas as pd
+import matplotlib.pyplot as plt
 
 #SuperTrend
 def ST(df,f,n): #df is the dataframe, n is the period, f is the factor; f=3, n=7 are commonly used.
@@ -47,5 +47,13 @@ def ST(df,f,n): #df is the dataframe, n is the period, f is the factor; f=3, n=7
             df['SuperTrend'][i]=df['Lower Band'][i]
         elif df['SuperTrend'][i-1]==df['Lower Band'][i-1] and df['Close'][i]<=df['Lower Band'][i]:
             df['SuperTrend'][i]=df['Upper Band'][i]
-    return df
     
+    df['Signal'] = df.apply(signal, axis=1)
+
+    return df
+
+def signal(c):
+    if c['Close'] > c['SuperTrend']:
+        return 'Buy'
+    else:
+        return 'Sell'
