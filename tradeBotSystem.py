@@ -79,6 +79,7 @@ class Terminal(cmd.Cmd):
         dfSuperTrendSignal = self.runSuperTrend(df)
         logger.info('SuperTrend Calculated')
         print(dfSuperTrendSignal)
+        
         entryPrice = 0
         exitPrice = 0
         for i in range(1, len(dfSuperTrendSignal)):
