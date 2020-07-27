@@ -5,12 +5,14 @@ import numpy as np
 import supertrend
 import cmd
 import uuid
+import matplotlib.pyplot as plt
+import mplfinance as mpf
 import excelTradeLogs
 
 class Terminal(cmd.Cmd):
 
-    intro = 'Welcome to kr0nos Algo Trading.   Type help or ? to list commands.\n'
-    prompt = 'kr0n0sAlgoTrader => '
+    intro = 'Welcome to kr0nos Trading System.   Type help or ? to list commands.\n'
+    prompt = 'kr0n0s => '
     tickers = ''
     period = ''
     startDate = ''
@@ -26,6 +28,10 @@ class Terminal(cmd.Cmd):
     def runSuperTrend(self, df):
         dfSt = supertrend.ST(df=df, f=int(self.stFactor), n=int(self.stPeriod))
         return dfSt
+    
+    def plotGraph(self, df):
+        apdict = mpf.make_addplot(df['SuperTrend'])
+        mpf.plot(df, type='candle', addplot=apdict)
 
     '''
     Command Control Functions
@@ -78,8 +84,6 @@ class Terminal(cmd.Cmd):
         df = yahoodata.getData(tickers=self.tickers, startDate=self.startDate, endDate=self.endDate, interval=self.period)
         dfSuperTrendSignal = self.runSuperTrend(df)
         logger.info('SuperTrend Calculated')
-        print(dfSuperTrendSignal)
-        
         entryPrice = 0
         exitPrice = 0
         for i in range(1, len(dfSuperTrendSignal)):
@@ -149,7 +153,8 @@ class Terminal(cmd.Cmd):
                     entryPrice = 0
                     exitPrice = 0
                     continue
-
+        self.plotGraph(dfSuperTrendSignal)
+        
     def do_run(self, line):
         return True
 
