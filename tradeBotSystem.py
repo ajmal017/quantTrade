@@ -11,7 +11,7 @@ import excelTradeLogs
 
 class Terminal(cmd.Cmd):
 
-    intro = 'Welcome to kr0nos Trading System.   Type help or ? to list commands.\n'
+    intro = 'Welcome to kr0nos Trading System. Type help or ? to list commands.\n'
     prompt = 'kr0n0s => '
     tickers = ''
     period = ''
