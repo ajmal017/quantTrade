@@ -2,7 +2,7 @@ import yahoodata
 import logging
 import logging.handlers
 import numpy as np
-import supertrend
+import supertrend2 as supertrend
 import cmd
 import uuid
 import matplotlib.pyplot as plt
