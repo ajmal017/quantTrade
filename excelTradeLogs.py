@@ -3,7 +3,7 @@ import datetime
 
 
 def writeExcel(dictInsData):
-    print('Writing excel')
+    #print('Writing excel.')
     excelFilename = 'quantTrades.xlsx'
     sheet = 'Trades'
     dateToday = datetime.datetime.now()

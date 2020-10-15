@@ -19,8 +19,9 @@ class Terminal(cmd.Cmd):
     endDate = ''
     stPeriod = 0
     stFactor = 0
-    maxExposure = 100000
+    maxExposure = 0
     correlationId = ''
+    performance = 0
     
     '''
     Business Logic Functions
@@ -58,6 +59,8 @@ class Terminal(cmd.Cmd):
             self.endDate = str(input('End Date [2020-07-17]: ') or '2020-07-17')
             self.stPeriod = int(input('SuperTrend Period [7]: ') or 7)
             self.stFactor = int(input('SuperTrend Factor [3]: ') or 3)
+            self.sizePosition = int(input('Position Size: [R$ 10.000,00') or 10000)
+            self.maxExposure = int(input('Max Exposure: [R$ 200.000,00') or 200000)
         elif line == 'run':
             logger.info('Configuring production mode')
             self.tickers = str(input('Tickers [VALE3.SA]: ') or 'VALE3.SA')
@@ -80,81 +83,96 @@ class Terminal(cmd.Cmd):
             return True
 
     def do_backtest(self, line):
-        logger.info('Running backtest mode')
+        logger.info('Running backtest emulation')
+        self.backtest()
+    
+    def backtest(self):
         df = yahoodata.getData(tickers=self.tickers, startDate=self.startDate, endDate=self.endDate, interval=self.period)
         dfSuperTrendSignal = self.runSuperTrend(df)
-        logger.info('SuperTrend Calculated')
-        entryPrice = 0
-        exitPrice = 0
-        for i in range(1, len(dfSuperTrendSignal)):
-            logger.debug('Evaluating data for Close: {} - SuperTrend: {}'.format(dfSuperTrendSignal['Close'][i], dfSuperTrendSignal['SuperTrend'][i]))
-            closePrice = dfSuperTrendSignal['Close'][i]
+        
+        currentPosition = 0
+        currentPrice = 0
+        self.performance = 0
+
+        for i in range(1, len(dfSuperTrendSignal) - 1):
+            logger.debug('Evaluating data for Close: {} - SuperTrend: {} - Date: {}'.format(dfSuperTrendSignal['Close'][i], dfSuperTrendSignal['SuperTrend'][i], dfSuperTrendSignal.index[i]))
+            nextCandleOpen = dfSuperTrendSignal['Open'][i+1]
+            
             if ((dfSuperTrendSignal['SuperTrend'][i] > 0) and (dfSuperTrendSignal['Signal'][i-1] == 'Sell') and (dfSuperTrendSignal['Signal'][i] == 'Buy')):
-                logger.warning('Buy Setup activated Close: {} - SuperTrend: {}'.format(dfSuperTrendSignal['Close'][i], dfSuperTrendSignal['SuperTrend'][i]))
+                logger.warning('Buy Setup activated Close: {} - SuperTrend: {} - Date: {}'.format(dfSuperTrendSignal['Close'][i], dfSuperTrendSignal['SuperTrend'][i], dfSuperTrendSignal.index[i]))
                 correlationId = uuid.uuid4().hex[:16]
-                entryPrice = closePrice
-                dictIns = {
-                    'CorrelationId': correlationId,
-                    'Ticker': self.tickers,
-                    'Units': 100,
-                    'UnitValue': entryPrice,
-                    'OrderType': 'Buy',
-                    'Control': 'SuperTrend'
-                }
-                excelTradeLogs.writeExcel(dictIns)
-                continue
-            elif ((dfSuperTrendSignal['SuperTrend'][i] > 0) and (dfSuperTrendSignal['Signal'][i-1] == 'Buy') and (dfSuperTrendSignal['Signal'][i] == 'Sell')):
-                logger.warning('Sell Setup activated Close: {} - SuperTrend: {}'.format(dfSuperTrendSignal['Close'][i], dfSuperTrendSignal['SuperTrend'][i]))
-                if entryPrice > 0:
-                    logger.warning('Selling positions')
-                    exitPrice = closePrice
+                entryPrice = nextCandleOpen
+                
+                unitsBuy = int(self.maxExposure / entryPrice) + abs(currentPosition)
+                
+                if currentPosition != 0:
+                    self.performance += abs(currentPosition * currentPrice) - (abs(currentPosition) * entryPrice)
+                
+                currentPosition += unitsBuy
+                currentPrice = entryPrice
+                
+                if unitsBuy > 0:
+
                     dictIns = {
                         'CorrelationId': correlationId,
                         'Ticker': self.tickers,
-                        'Units': 100,
-                        'UnitValue': exitPrice,
+                        'Units': unitsBuy,
+                        'UnitValue': entryPrice,
+                        'OrderType': 'Buy',
+                        'Control': 'SuperTrend'
+                    }
+
+                    excelTradeLogs.writeExcel(dictIns)
+                else:
+                    logger.warning('Max Exposure reached! Stopping position trades.')
+                
+                continue
+
+            elif ((dfSuperTrendSignal['SuperTrend'][i] > 0) and (dfSuperTrendSignal['Signal'][i-1] == 'Buy') and (dfSuperTrendSignal['Signal'][i] == 'Sell')):
+                logger.warning('Sell Setup activated Close: {} - SuperTrend: {} - Date: {}'.format(dfSuperTrendSignal['Close'][i], dfSuperTrendSignal['SuperTrend'][i], dfSuperTrendSignal.index[i]))
+                entryPrice = nextCandleOpen
+
+                unitsSell = int(self.maxExposure / entryPrice) + currentPosition
+
+                if currentPosition != 0:
+                    self.performance += abs(currentPosition * entryPrice) - (abs(currentPosition) * currentPrice)
+
+                currentPosition -= unitsSell
+                currentPrice = entryPrice
+
+                if unitsSell > 0:
+
+                    dictIns = {
+                        'CorrelationId': correlationId,
+                        'Ticker': self.tickers,
+                        'Units': unitsSell,
+                        'UnitValue': entryPrice,
                         'OrderType': 'Sell',
                         'Control': 'SuperTrend'
                     }
                     excelTradeLogs.writeExcel(dictIns)
-                    entryPrice = 0
-                    exitPrice = 0
+                else:
+                    logger.warning('Max Exposure reached! Stopping position trades.')
                 continue
-            elif (entryPrice > 0):
-                logger.debug('Evaluating stop gain EntryPrice: {} - ClosePrice: {}'.format(entryPrice, closePrice))
-                if ((closePrice > entryPrice) and (((closePrice - entryPrice)/entryPrice) > 0.04)):
-                    logger.warning('Stop gain activated')
-                    exitPrice = closePrice
-                    dictIns = {
-                        'CorrelationId': correlationId,
-                        'Ticker': self.tickers,
-                        'Units': 100,
-                        'UnitValue': exitPrice,
-                        'OrderType': 'Sell',
-                        'Control': 'Stop Gain'
-                    }
-                    excelTradeLogs.writeExcel(dictIns)
-                    entryPrice = 0
-                    exitPrice = 0
-                    continue
-                logger.debug('Evaluating stop loss EntryPrice: {} - ClosePrice: {}'.format(entryPrice, closePrice))
-                if ((closePrice < entryPrice) and ((abs(closePrice - entryPrice)/entryPrice) > 0.02)):
-                    logger.warning('Stop loss activated')
-                    exitPrice = closePrice
-                    dictIns = {
-                        'CorrelationId': correlationId,
-                        'Ticker': self.tickers,
-                        'Units': 100,
-                        'UnitValue': exitPrice,
-                        'OrderType': 'Sell',
-                        'Control': 'Stop Loss'
-                    }
-                    excelTradeLogs.writeExcel(dictIns)
-                    entryPrice = 0
-                    exitPrice = 0
-                    continue
-        self.plotGraph(dfSuperTrendSignal)
-        
+
+        logger.warning('Performance until now: {}'.format(self.performance))
+        logger.warning('Current Position: {}'.format(currentPosition))
+        #self.plotGraph(dfSuperTrendSignal)
+
+    def do_draft(self, line):
+        logger.info('Running tests for best factor')
+        bestPerformance = -1000000000
+        bestFactor = 7
+        for i in range(1, self.stFactor):
+            self.stFactor = i
+            self.backtest()
+            if self.performance > bestPerformance and self.performance != 0:
+                bestPerformance = self.performance
+                bestFactor = i
+            self.performance = 0
+        print(bestPerformance)
+        print(bestFactor)
+
     def do_run(self, line):
         return True
 
